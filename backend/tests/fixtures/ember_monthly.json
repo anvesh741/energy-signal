@@ -1,0 +1,8 @@
+{
+  "stats": {"number_of_records": 3},
+  "data": [
+    {"entity": "United States", "entity_code": "USA", "is_aggregate_entity": false, "date": "2024-01-01", "demand_twh": 330.5},
+    {"entity": "Germany", "entity_code": "DEU", "is_aggregate_entity": false, "date": "2024-01-01", "demand_twh": 44.2},
+    {"entity": "United States", "entity_code": "USA", "is_aggregate_entity": false, "date": "2024-02-01", "demand_twh": 310.1}
+  ]
+}

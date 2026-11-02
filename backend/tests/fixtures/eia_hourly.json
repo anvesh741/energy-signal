@@ -1,0 +1,9 @@
+{
+  "response": {
+    "total": 2,
+    "data": [
+      {"period": "2024-03-10T05", "value": "400000", "respondent": "US48", "type": "D"},
+      {"period": "2024-03-10T06", "value": "410000", "respondent": "US48", "type": "D"}
+    ]
+  }
+}
