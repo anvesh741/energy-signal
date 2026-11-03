@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Nav } from "@/components/Nav";
+import { SnapshotNote } from "@/components/SnapshotNote";
 
 import "./globals.css";
 
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="mx-auto max-w-6xl px-4 pb-8 text-[12px] muted">
           Data: U.S. Energy Information Administration · Ember (CC BY 4.0) · World Bank Pink Sheet (CC BY 4.0). Not
           trading advice. See <Link href="/sources" className="underline">Sources</Link> for lags and licenses.
+          <SnapshotNote />
         </footer>
       </body>
     </html>

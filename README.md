@@ -48,6 +48,18 @@ Keys: EIA — https://www.eia.gov/opendata/register.php · Ember — https://emb
 The World Bank Pink Sheet needs no key. The UI shows a **Demo data** banner until a
 real refresh lands; delete `data/energysignal.db` before the first real run if you seeded demo data.
 
+## Free hosting (GitHub Pages)
+
+`.github/workflows/pages.yml` runs the whole pipeline hourly on GitHub Actions, with no server:
+`scheduler --once` refreshes → `python -m app.export_static` snapshots every API response the
+dashboard requests into JSON → `next build` with `STATIC_EXPORT=1` produces a static site that
+reads those files → deploy to Pages. The SQLite database rides along in the Actions cache.
+
+Setup: add `EIA_API_KEY` and `EMBER_API_KEY` as repository secrets, and set
+Settings → Pages → Source to **GitHub Actions**. Trade-offs: data is up to ~1 hour old
+(the footer shows the snapshot time), GitHub may delay scheduled runs at busy times, and it
+disables scheduled workflows after 60 days without repository activity (re-enable in the Actions tab).
+
 ## What the scheduler does
 
 Only the holder of `SchedulerLease` runs jobs (atomic conditional UPDATE, renewed by a
