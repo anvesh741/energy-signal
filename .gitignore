@@ -11,7 +11,7 @@ __pycache__/
 node_modules/
 frontend/.next/
 frontend/out/
-data/*.db
-data/*.db-*
+data/**/*.db
+data/**/*.db-*
 .scheduler.lock
 *.tsbuildinfo

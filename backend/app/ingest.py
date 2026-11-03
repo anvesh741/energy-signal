@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from sqlalchemy import delete
@@ -10,6 +11,8 @@ from app.rollup import local_date_of, rollup_hourly, utc_bounds_of_local_date
 from app.timeutil import as_utc, utc_now
 
 UPSERT_CHUNK = 500
+# httpx error messages include the request URL, which carries the api key
+SECRET_PARAM = re.compile(r"(api_key=)[^&\s'\"]+")
 
 
 def seed_series(session: Session) -> None:
@@ -120,7 +123,7 @@ def finish_refresh(
     run.finished_at = utc_now()
     run.success = success
     run.rows_upserted = rows
-    run.error = error[:800] if error else None
+    run.error = SECRET_PARAM.sub(r"\1***", error)[:800] if error else None
     for key, value in fields.items():
         setattr(run, key, value)
     session.add(run)

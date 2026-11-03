@@ -136,6 +136,7 @@ def main() -> None:
     parser.add_argument("--once", action="store_true", help="refresh everything once (forcing weekly) and exit")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # request URLs carry api_key
     init_db()
 
     start_heartbeat()
