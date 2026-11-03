@@ -1,4 +1,6 @@
-# Hourly refresh -> JSON snapshot -> static site on GitHub Pages. No server needed.
+# Daily refresh -> JSON snapshot -> static site on GitHub Pages. No server needed.
+# Also runs on push, on manual dispatch, and when the project is opened in VS Code
+# (.vscode/tasks.json runs `gh workflow run` on folder open).
 # The SQLite database is carried between runs in the Actions cache, so insight
 # hysteresis and forecast history persist; if the cache is evicted, the next run
 # simply backfills from scratch (about a minute).
@@ -6,7 +8,7 @@ name: Refresh and deploy
 
 on:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "17 11 * * *"  # daily, 11:17 UTC (6:17 AM ET in winter)
   workflow_dispatch:
   push:
     branches: [main]

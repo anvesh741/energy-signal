@@ -50,13 +50,15 @@ real refresh lands; delete `data/energysignal.db` before the first real run if y
 
 ## Free hosting (GitHub Pages)
 
-`.github/workflows/pages.yml` runs the whole pipeline hourly on GitHub Actions, with no server:
+`.github/workflows/pages.yml` runs the whole pipeline daily on GitHub Actions, with no server:
 `scheduler --once` refreshes → `python -m app.export_static` snapshots every API response the
 dashboard requests into JSON → `next build` with `STATIC_EXPORT=1` produces a static site that
 reads those files → deploy to Pages. The SQLite database rides along in the Actions cache.
 
 Setup: add `EIA_API_KEY` and `EMBER_API_KEY` as repository secrets, and set
-Settings → Pages → Source to **GitHub Actions**. Trade-offs: data is up to ~1 hour old
+Settings → Pages → Source to **GitHub Actions**. Opening the project in VS Code also
+triggers a run (`.vscode/tasks.json`; allow automatic tasks once), as does any push or
+`gh workflow run pages.yml`. Trade-offs: data can be up to a day old
 (the footer shows the snapshot time), GitHub may delay scheduled runs at busy times, and it
 disables scheduled workflows after 60 days without repository activity (re-enable in the Actions tab).
 

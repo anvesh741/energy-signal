@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // Starts the GitHub Pages refresh whenever this folder is opened.
+      // VS Code asks once to "Allow Automatic Tasks"; run it by hand via Tasks: Run Task.
+      "label": "Refresh EnergySignal dashboard",
+      "type": "shell",
+      "command": "gh workflow run pages.yml -R anvesh741/energy-signal && echo 'Refresh started: https://github.com/anvesh741/energy-signal/actions'",
+      "runOptions": { "runOn": "folderOpen" },
+      "presentation": { "reveal": "silent", "panel": "dedicated", "close": true },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -7,5 +7,5 @@ import { dateTime } from "@/lib/format";
 export function SnapshotNote() {
   const { data } = useApi<{ built_at: string }>(IS_STATIC ? "/api/meta" : null);
   if (!data) return null;
-  return <> Snapshot updated {dateTime(data.built_at)}; refreshed hourly.</>;
+  return <> Snapshot updated {dateTime(data.built_at)}; refreshed daily.</>;
 }
