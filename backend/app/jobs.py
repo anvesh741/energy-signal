@@ -1,8 +1,10 @@
 """Refresh jobs. Each returns the set of series ids that received a new latest observation."""
 
+import statistics
 from datetime import datetime, timedelta
 
 import httpx
+from sqlalchemy import delete
 from sqlmodel import Session, col, select
 
 from app.catalog import ids_where
@@ -12,6 +14,7 @@ from app.forecast import DEMAND_SERIES, PRICE_SERIES, issue_forecasts
 from app.ingest import (
     earliest_observation,
     finish_refresh,
+    history,
     latest_observation,
     rebuild_rollups,
     seed_series,
@@ -19,7 +22,7 @@ from app.ingest import (
     upsert_observations,
 )
 from app.insights import generate_insights
-from app.models import RefreshRun, Series
+from app.models import Observation, RefreshRun, Series
 from app.sources import eia, ember, pink_sheet
 from app.timeutil import as_utc, utc_now
 from app.weekly_window import RELEASES, window_start
@@ -30,6 +33,11 @@ MAX_BACKFILL_CHUNKS_PER_RUN = 14
 # demand + DF need a year for daily backtests; the rest only feed recent charts
 HOURLY_BACKFILL_DAYS = {"eia-us48-demand": 400, "eia-us48-df": 400}
 HOURLY_BACKFILL_DEFAULT = 45
+# US48 DF is a sum over balancing authorities; its newest hours include only the ones that
+# have reported, so they look like a collapse. Drop values below this share of the trailing
+# week's median (the real overnight trough sits near 0.85); later re-pulls restore them.
+PARTIAL_COVERAGE_SERIES = {"eia-us48-df"}
+PARTIAL_COVERAGE_FRACTION = 0.6
 DAILY_PRICE_BACKFILL = timedelta(days=5 * 365)
 WEEKLY_BACKFILL = {"retail": timedelta(days=5 * 365), "storage": timedelta(days=6 * 365 + 30)}
 WEEKLY_SERIES = {"retail": ids_where(category="retail"), "storage": ids_where(category="storage")}
@@ -52,6 +60,22 @@ def _hour(ts: datetime) -> str:
 
 def _advanced(before, after) -> bool:
     return after is not None and (before is None or after.ts_utc > before.ts_utc)
+
+
+def prune_partial_coverage(session: Session, series_id: str, since: datetime) -> int:
+    """Delete values from `since` on that are too low to be a full US48 total. Returns rows removed."""
+    reference = [v for _, v in history(session, series_id, since - timedelta(days=7))]
+    if len(reference) < 24:
+        return 0
+    floor = PARTIAL_COVERAGE_FRACTION * statistics.median(reference)
+    result = session.exec(
+        delete(Observation).where(
+            col(Observation.series_id) == series_id,
+            col(Observation.ts_utc) >= as_utc(since),
+            col(Observation.value) < floor,
+        )
+    )
+    return result.rowcount or 0
 
 
 def _fetch(client: httpx.Client, series: Series, freq: str, start: str, end: str | None = None) -> list[dict]:
@@ -87,6 +111,8 @@ def refresh_eia_hourly(session: Session, client: httpx.Client) -> set[str]:
                 total += upsert_observations(session, sid, rows)
                 session.commit()  # resumable: a crash keeps finished chunks
 
+            if sid in PARTIAL_COVERAGE_SERIES and touched:
+                prune_partial_coverage(session, sid, min(touched))
             rebuild_rollups(session, sid, touched)
             session.commit()
             if _advanced(before, latest_observation(session, sid)):

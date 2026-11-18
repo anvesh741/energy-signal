@@ -29,3 +29,21 @@ def test_rebuild_only_touched_local_dates(session):
     assert by_day[date(2024, 1, 15)].total == 240.0
     assert by_day[date(2024, 1, 16)].total == 264.0
     assert by_day[date(2024, 1, 16)].peak == 34.0
+
+
+def test_partial_coverage_df_values_are_pruned(session):
+    from app.jobs import prune_partial_coverage
+
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    week = [{"ts_utc": start + timedelta(hours=i), "value": 450_000.0 - (i % 24) * 3_000} for i in range(7 * 24)]
+    tail_start = start + timedelta(hours=7 * 24)
+    # newest hours: only some balancing authorities have reported
+    tail = [{"ts_utc": tail_start + timedelta(hours=i), "value": v} for i, v in enumerate([440_000.0, 180_000.0, 40_000.0])]
+    upsert_observations(session, "eia-us48-df", week + tail)
+
+    removed = prune_partial_coverage(session, "eia-us48-df", tail_start)
+
+    kept = {o.ts_utc: o.value for o in session.exec(select(Observation))}
+    assert removed == 2
+    assert kept[tail_start] == 440_000.0
+    assert len(kept) == 7 * 24 + 1
