@@ -42,7 +42,7 @@ export default function ElectricityPage() {
   return (
     <>
       <DemoBanner show={overview.data?.demo} />
-      <PageTitle title="Electricity">
+      <PageTitle title="Electricity" eyebrow="Grid · US48 hourly">
         US48 hourly demand from EIA balancing-authority reports. Days are local calendar days in {US48_TZ}; days
         with missing hours are shown as partial and left out of totals, insights and forecasts.
       </PageTitle>

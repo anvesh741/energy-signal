@@ -134,7 +134,7 @@ export default function ForecastsPage() {
   return (
     <>
       <DemoBanner show={overview.data?.demo} />
-      <PageTitle title="Forecasts">
+      <PageTitle title="Forecasts" eyebrow="Models · backtests · bands">
         Statistical baselines with measured, not assumed, uncertainty. Every band says how often it actually
         contained the outcome in a rolling-origin backtest, and over how many forecast origins.
       </PageTitle>

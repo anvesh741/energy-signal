@@ -60,7 +60,7 @@ export default function FuelsPage() {
   return (
     <>
       <DemoBanner show={overview.data?.demo} />
-      <PageTitle title="Fuels">
+      <PageTitle title="Fuels" eyebrow="Oil · gas · storage">
         Oil and natural-gas spot prices, U.S. retail fuel, working gas in storage against its 5-year range, and
         monthly international benchmarks.
       </PageTitle>

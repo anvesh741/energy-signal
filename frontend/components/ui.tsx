@@ -16,18 +16,22 @@ export function Card({
   className?: string;
 }) {
   return (
-    <section className={`card p-4 sm:p-5 min-w-0 ${className}`}>
+    <section className={`card p-4 sm:p-6 min-w-0 ${className}`}>
       {(title || actions) && (
         <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            {title && <h2 className="text-[15px] font-semibold leading-snug">{title}</h2>}
-            {subtitle && <p className="mt-0.5 text-[13px] ink-2">{subtitle}</p>}
+            {title && <h2 className="text-[16px] font-semibold leading-snug tracking-tight">{title}</h2>}
+            {subtitle && <p className="mt-1 text-[13px] ink-2">{subtitle}</p>}
           </div>
           {actions && <div className="flex flex-wrap gap-1.5">{actions}</div>}
         </header>
       )}
       {children}
-      {footer && <footer className="mt-3 text-[12px] muted">{footer}</footer>}
+      {footer && (
+        <footer className="mt-4 pt-3 text-[12px] muted" style={{ borderTop: "1px dashed var(--grid)" }}>
+          {footer}
+        </footer>
+      )}
     </section>
   );
 }
@@ -46,22 +50,37 @@ export function Stat({
   note?: ReactNode;
 }) {
   return (
-    <div className="card p-4 min-w-0">
-      <div className="text-[13px] ink-2">{label}</div>
-      <div className="mt-1 flex items-baseline gap-1.5">
-        <span className="text-[28px] font-semibold leading-none">{value}</span>
+    <div className="card flex min-w-0 flex-col p-5">
+      <div className="eyebrow">{label}</div>
+      <div className="mt-3 flex items-baseline gap-1.5">
+        <span className="mono text-[30px] font-semibold leading-none tracking-tight tabular">{value}</span>
         {unit && <span className="text-[13px] muted">{unit}</span>}
       </div>
       {delta && (
-        <div className="mt-1.5 text-[13px] ink-2">
-          <span aria-hidden>{delta.dir === "up" ? "▲" : delta.dir === "down" ? "▼" : "■"}</span>{" "}
-          <span className="font-medium" style={{ color: "var(--ink)" }}>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[12.5px] ink-2">
+          <span
+            className="chip mono"
+            style={{
+              background:
+                delta.dir === "up"
+                  ? "color-mix(in srgb, var(--series-1) 14%, transparent)"
+                  : delta.dir === "down"
+                    ? "color-mix(in srgb, var(--series-2) 14%, transparent)"
+                    : "var(--wash)",
+              color: "var(--ink)",
+            }}
+          >
+            <span aria-hidden>{delta.dir === "up" ? "▲" : delta.dir === "down" ? "▼" : "■"}</span>
             {delta.text}
-          </span>{" "}
-          {delta.vs}
+          </span>
+          <span>{delta.vs}</span>
         </div>
       )}
-      {note && <div className="mt-2 text-[12px] muted leading-snug">{note}</div>}
+      {note && (
+        <div className="mt-auto pt-3 text-[12px] muted leading-snug" style={{ borderTop: "1px dashed var(--grid)", marginTop: 14 }}>
+          {note}
+        </div>
+      )}
     </div>
   );
 }
@@ -108,7 +127,7 @@ export function DemoBanner({ show }: { show?: boolean }) {
 
 export function Loading({ error }: { error?: string | null }) {
   return (
-    <div className="card p-6 text-[13px] ink-2">
+    <div className="card p-8 text-[13px] ink-2">
       {error ? (
         <>
           <strong>Could not reach the API.</strong> Is the backend running on :8000? <span className="muted">{error}</span>
@@ -160,11 +179,12 @@ export function TableView({
   );
 }
 
-export function PageTitle({ title, children }: { title: string; children?: ReactNode }) {
+export function PageTitle({ title, eyebrow, children }: { title: string; eyebrow?: string; children?: ReactNode }) {
   return (
-    <div className="mb-5">
-      <h1 className="text-[22px] font-semibold">{title}</h1>
-      {children && <p className="mt-1 max-w-3xl text-[14px] ink-2">{children}</p>}
+    <div className="mb-7">
+      {eyebrow && <div className="eyebrow mb-2" style={{ color: "var(--signal-ink)" }}>{eyebrow}</div>}
+      <h1 className="text-[30px] font-bold leading-tight tracking-tight sm:text-[34px]">{title}</h1>
+      {children && <p className="mt-2 max-w-3xl text-[15px] leading-relaxed ink-2">{children}</p>}
     </div>
   );
 }

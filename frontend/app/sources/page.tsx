@@ -49,7 +49,7 @@ export default function SourcesPage() {
   return (
     <>
       <DemoBanner show={data.demo} />
-      <PageTitle title="Sources">
+      <PageTitle title="Sources" eyebrow="Provenance · freshness">
         Where every series comes from, its license, and two different kinds of age: <strong>data lag</strong> (how
         old the newest period is — often normal for weekly-published data) and <strong>fetch staleness</strong> (how
         long since we last successfully checked).

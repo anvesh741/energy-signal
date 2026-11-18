@@ -14,7 +14,11 @@ const LINKS = [
 export function Nav() {
   const path = usePathname();
   return (
-    <nav className="flex gap-1 overflow-x-auto text-[14px]" aria-label="Primary">
+    <nav
+      className="flex max-w-full gap-0.5 overflow-x-auto rounded-full p-1 text-[13.5px]"
+      style={{ background: "var(--wash)" }}
+      aria-label="Primary"
+    >
       {LINKS.map(([href, label]) => {
         const active = href === "/" ? path === "/" : path.startsWith(href);
         return (
@@ -22,8 +26,13 @@ export function Nav() {
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className="whitespace-nowrap rounded-lg px-2.5 py-1.5"
-            style={{ background: active ? "var(--wash)" : "transparent", fontWeight: active ? 600 : 400 }}
+            className="whitespace-nowrap rounded-full px-3.5 py-1.5 transition-colors"
+            style={{
+              background: active ? "var(--surface)" : "transparent",
+              color: active ? "var(--ink)" : "var(--ink-2)",
+              fontWeight: active ? 600 : 500,
+              boxShadow: active ? "var(--shadow)" : "none",
+            }}
           >
             {label}
           </Link>
