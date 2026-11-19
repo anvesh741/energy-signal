@@ -1,7 +1,13 @@
+"use client";
+
+import { useViewMode } from "@/components/ViewMode";
+import { insightMeaning } from "@/lib/explain";
 import { day } from "@/lib/format";
 import type { Insight } from "@/lib/types";
 
 export function InsightInputs({ inputs }: { inputs: string }) {
+  const { mode } = useViewMode();
+  if (mode === "simple") return null;
   let parsed: Record<string, unknown> = {};
   try {
     parsed = JSON.parse(inputs);
@@ -51,9 +57,12 @@ export function InsightList({ items }: { items: Insight[] }) {
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-[14px] font-medium leading-snug">{i.headline}</div>
+              <div className="mt-1 text-[13px] leading-relaxed ink-2">{insightMeaning(i)}</div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span className="chip">{RULE_LABEL[i.rule_id] ?? i.rule_id}</span>
-                {i.state && i.state !== "normal" && i.state !== "inside" && <span className="chip signal">{i.state}</span>}
+                {i.state && i.state !== "normal" && i.state !== "inside" && (
+                  <span className="chip signal">{i.state}</span>
+                )}
                 <span className="mono text-[11.5px] muted">
                   as of {day(i.as_of, i.rule_id === "demand_week" ? "America/New_York" : "UTC")}
                 </span>

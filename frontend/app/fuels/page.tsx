@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { InsightList } from "@/components/InsightList";
 import { TimeChart } from "@/components/TimeChart";
+import { Term } from "@/components/Term";
 import { Card, DemoBanner, Empty, Loading, PageTitle, Stat, TableView } from "@/components/ui";
 import { useApi } from "@/lib/api";
 import { day, lag, ms, num, pct } from "@/lib/format";
@@ -14,12 +15,21 @@ type Fuels = { spot: Packed[]; retail: Packed[]; global: Packed[]; insights: Ins
 type Storage = {
   series: SeriesMeta;
   regions: { id: string; region: string }[];
-  band: { week: number; min: number; max: number; mean: number; n_years: number; years_used: string[]; current: number | null } | null;
+  band: {
+    week: number;
+    min: number;
+    max: number;
+    mean: number;
+    n_years: number;
+    years_used: string[];
+    current: number | null;
+  } | null;
   history: { t: string; value: number; min: number | null; max: number | null; mean: number | null; n_years: number }[];
   method: string;
 };
 
-const monthFmt = (x: number) => new Date(x).toLocaleDateString("en-US", { month: "short", year: "2-digit", timeZone: "UTC" });
+const monthFmt = (x: number) =>
+  new Date(x).toLocaleDateString("en-US", { month: "short", year: "2-digit", timeZone: "UTC" });
 
 /** One chart per unit; series in it share the axis. */
 function PriceChart({ items, digits = 2 }: { items: Packed[]; digits?: number }) {
@@ -61,8 +71,9 @@ export default function FuelsPage() {
     <>
       <DemoBanner show={overview.data?.demo} />
       <PageTitle title="Fuels" eyebrow="Oil · gas · storage">
-        Oil and natural-gas spot prices, U.S. retail fuel, working gas in storage against its 5-year range, and
-        monthly international benchmarks.
+        Crude oil (<Term k="WTI" /> and <Term k="Brent" />) and natural gas (<Term k="Henry Hub" />) prices, what
+        gasoline and diesel cost at the pump, and how much gas is in storage compared with the last five years, in{" "}
+        <Term k="Bcf" />.
       </PageTitle>
 
       {!f ? (
@@ -128,7 +139,12 @@ export default function FuelsPage() {
               <Stat label="Storage" value="—" note="Needs 5+ years of weekly history (backfilled on first run)." />
             )}
           </div>
-          <Card className="lg:col-span-2" title={`${s.series.title}`} subtitle="Bcf, weekly, last two years" footer={`${s.method} Source: U.S. EIA.`}>
+          <Card
+            className="lg:col-span-2"
+            title={`${s.series.title}`}
+            subtitle="Bcf, weekly, last two years"
+            footer={`${s.method} Source: U.S. EIA.`}
+          >
             {s.history.length ? (
               <>
                 <TimeChart
@@ -144,7 +160,14 @@ export default function FuelsPage() {
                 />
                 <TableView
                   columns={["Week ending", "Bcf", "5-yr min", "5-yr max", "5-yr mean", "Years"]}
-                  rows={s.history.map((h) => [h.t, num(h.value, 0), num(h.min, 0), num(h.max, 0), num(h.mean, 0), h.n_years])}
+                  rows={s.history.map((h) => [
+                    h.t,
+                    num(h.value, 0),
+                    num(h.min, 0),
+                    num(h.max, 0),
+                    num(h.mean, 0),
+                    h.n_years,
+                  ])}
                 />
               </>
             ) : (
@@ -158,10 +181,18 @@ export default function FuelsPage() {
         <>
           <h2 className="mb-3 mt-8 text-[17px] font-semibold">International benchmarks (monthly)</h2>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card title="Australian thermal coal" subtitle="$/mt, monthly average" footer="World Bank Commodity Price Data (The Pink Sheet), CC BY 4.0.">
+            <Card
+              title="Australian thermal coal"
+              subtitle="$/mt, monthly average"
+              footer="World Bank Commodity Price Data (The Pink Sheet), CC BY 4.0."
+            >
               <PriceChart items={f.global.filter((g) => g.unit === "$/mt")} digits={0} />
             </Card>
-            <Card title="European gas (TTF) and Japan LNG" subtitle="$/MMBtu, monthly average" footer="World Bank Commodity Price Data (The Pink Sheet), CC BY 4.0. Monthly Excel, typically updated early in the following month.">
+            <Card
+              title="European gas (TTF) and Japan LNG"
+              subtitle="$/MMBtu, monthly average"
+              footer="World Bank Commodity Price Data (The Pink Sheet), CC BY 4.0. Monthly Excel, typically updated early in the following month."
+            >
               <PriceChart items={f.global.filter((g) => g.unit === "$/MMBtu")} />
             </Card>
           </div>

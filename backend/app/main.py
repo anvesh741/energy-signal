@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from fastapi import FastAPI, HTTPException, Query
 from sqlmodel import Session, col, select
 
-from app.catalog import ids_where
+from app.catalog import GRID_REGIONS, ids_where
 from app.db import init_db, session_scope
 from app.downsample import min_max_buckets
 from app.forecast import DEMAND_SERIES, PRICE_SERIES, specs_for
@@ -179,42 +179,58 @@ def series_observations(series_id: str, days: int = 365, max_points: int = 800) 
         return {"series": _meta(s), "downsample": downsample, "points": points}
 
 
-@app.get("/api/electricity/us48")
-def electricity_us48(days: int = Query(14, ge=2, le=400)) -> dict:
+# region code -> (display name, local tz); US48 first, then EIA's 13 regions alphabetically
+GRIDS = {"US48": ("United States (Lower 48)", US48_TZ), **dict(sorted(GRID_REGIONS.items(), key=lambda kv: kv[1][0]))}
+
+
+@app.get("/api/electricity/grid")
+def electricity_grid(region: str = "US48", days: int = Query(14, ge=2, le=400)) -> dict:
+    if region not in GRIDS:
+        raise HTTPException(404, f"unknown region {region}")
+    name, tz = GRIDS[region]
+    demand_id, df_id = f"eia-{region.lower()}-demand", f"eia-{region.lower()}-df"
     with session_scope() as session:
         since = utc_now() - timedelta(days=days)
-        demand = history(session, "eia-us48-demand", since=since)
-        df = history(session, "eia-us48-df", since=since)
+        demand = history(session, demand_id, since=since)
+        df = history(session, df_id, since=since)
         rollups = list(
             session.exec(
                 select(DailyRollup)
-                .where(DailyRollup.series_id == "eia-us48-demand")
+                .where(DailyRollup.series_id == demand_id)
                 .order_by(col(DailyRollup.local_date).desc())
                 .limit(max(days, 14))
             )
         )[::-1]
         fuels = []
-        for sid in ids_where(category="fuel_mix"):
-            s = session.get(Series, sid)
-            days_done = complete_daily(session, sid)[-days:]
-            fuels.append(
-                {
-                    "id": sid,
-                    "fuel": s.title.split(": ", 1)[-1],
-                    "days": [{"date": r.local_date.isoformat(), "total": r.total} for r in days_done],
-                }
-            )
+        if region == "US48":  # EIA's fuel-type data is pinned for US48 only
+            for sid in ids_where(category="fuel_mix"):
+                s = session.get(Series, sid)
+                days_done = complete_daily(session, sid)[-days:]
+                fuels.append(
+                    {
+                        "id": sid,
+                        "fuel": s.title.split(": ", 1)[-1],
+                        "days": [{"date": r.local_date.isoformat(), "total": r.total} for r in days_done],
+                    }
+                )
         return {
-            "local_tz": US48_TZ,
-            "note": "US48 local day = America/New_York. Partial local days are shown hatched and excluded from totals, KPIs, insights and forecasts.",
+            "region": {"code": region, "name": name},
+            "regions": [{"code": code, "name": n} for code, (n, _) in GRIDS.items()],
+            "local_tz": tz,
+            "note": f"Local day = {tz}. Partial local days are shown hatched and excluded from totals, KPIs, insights and forecasts.",
             "downsample": "min_max",
             "demand": min_max_buckets(demand, 900),
             "day_ahead": min_max_buckets(df, 900),
             "daily": [_rollup_json(r) for r in rollups],
             "fuel_mix": fuels,
-            "latest": _latest(session, "eia-us48-demand"),
+            "latest": _latest(session, demand_id),
             "attribution": "U.S. Energy Information Administration",
         }
+
+
+@app.get("/api/electricity/us48")
+def electricity_us48(days: int = Query(14, ge=2, le=400)) -> dict:
+    return electricity_grid("US48", days)
 
 
 @app.get("/api/electricity/global")

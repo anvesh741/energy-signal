@@ -64,6 +64,24 @@ STORAGE_REGIONS = {
     "R35": "Pacific",
 }
 
+# EIA's 13 regional aggregates; together they make up US48. tz = where most of the load sits,
+# used only to cut local calendar days.
+GRID_REGIONS = {
+    "CAL": ("California", "America/Los_Angeles"),
+    "CAR": ("Carolinas", "America/New_York"),
+    "CENT": ("Central", "America/Chicago"),
+    "FLA": ("Florida", "America/New_York"),
+    "MIDA": ("Mid-Atlantic", "America/New_York"),
+    "MIDW": ("Midwest", "America/Chicago"),
+    "NE": ("New England", "America/New_York"),
+    "NY": ("New York", "America/New_York"),
+    "NW": ("Northwest", "America/Los_Angeles"),
+    "SE": ("Southeast", "America/New_York"),
+    "SW": ("Southwest", "America/Phoenix"),
+    "TEN": ("Tennessee", "America/Chicago"),
+    "TEX": ("Texas", "America/Chicago"),
+}
+
 EMBER_COUNTRIES = {
     "USA": ("United States", "America/New_York"),
     "DEU": ("Germany", "Europe/Berlin"),
@@ -89,6 +107,17 @@ CATALOG: list[Series] = [
             f"US48 generation: {name}", "fuel_mix",
         )
         for code, name in FUELS.items()
+    ],
+    *[
+        _eia(
+            f"eia-{code.lower()}-{kind}", "electricity/rto/region-data", f"{code}|{facet}", "MWh", "hourly",
+            name, f"{name} {label}", HOURLY_LAG, category, local_tz=tz,
+        )
+        for code, (name, tz) in GRID_REGIONS.items()
+        for kind, facet, label, category in (
+            ("demand", "D", "electricity demand", "region_demand"),
+            ("df", "DF", "day-ahead demand forecast", "region_forecast"),
+        )
     ],
     _eia("eia-wti", "petroleum/pri/spt", "RWTC", "$/bbl", "daily", "Cushing, OK", "WTI crude spot", SPOT_LAG, "price"),
     _eia("eia-brent", "petroleum/pri/spt", "RBRTE", "$/bbl", "daily", "Europe", "Brent crude spot", SPOT_LAG, "price"),

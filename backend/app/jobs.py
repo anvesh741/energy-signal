@@ -7,7 +7,7 @@ import httpx
 from sqlalchemy import delete
 from sqlmodel import Session, col, select
 
-from app.catalog import ids_where
+from app.catalog import GRID_REGIONS, ids_where
 from app.config import settings
 from app.eval import run_evaluations
 from app.forecast import DEMAND_SERIES, PRICE_SERIES, issue_forecasts
@@ -31,13 +31,23 @@ REPULL_HOURS = 72
 HOURLY_CHUNK = timedelta(days=30)
 MAX_BACKFILL_CHUNKS_PER_RUN = 14
 # demand + DF need a year for daily backtests; the rest only feed recent charts
-HOURLY_BACKFILL_DAYS = {"eia-us48-demand": 400, "eia-us48-df": 400}
+HOURLY_BACKFILL_DAYS = {
+    "eia-us48-demand": 400,
+    "eia-us48-df": 400,
+    # regions feed the 7–90 day charts only
+    **{f"eia-{code.lower()}-{kind}": 95 for code in GRID_REGIONS for kind in ("demand", "df")},
+}
 HOURLY_BACKFILL_DEFAULT = 45
-# US48 DF is a sum over balancing authorities; its newest hours include only the ones that
-# have reported, so they look like a collapse. Drop values below this share of the trailing
-# week's median (the real overnight trough sits near 0.85); later re-pulls restore them.
-PARTIAL_COVERAGE_SERIES = {"eia-us48-df"}
-PARTIAL_COVERAGE_FRACTION = 0.6
+# US48 and regional DF are sums over balancing authorities; their newest hours include only the
+# ones that have reported, so they look like a collapse. Regional demand also has the odd
+# half-reported hour (e.g. Carolinas at the Nov 2 clock change). Drop values below this share of
+# the trailing week's median; the real overnight trough sits near 0.85 (US48) to 0.6 (regions).
+# A dropped hour leaves its local day partial, so it also stays out of daily totals.
+PARTIAL_COVERAGE_FLOOR = {
+    "eia-us48-df": 0.6,
+    **{f"eia-{code.lower()}-df": 0.6 for code in GRID_REGIONS},
+    **{f"eia-{code.lower()}-demand": 0.5 for code in GRID_REGIONS},
+}
 DAILY_PRICE_BACKFILL = timedelta(days=5 * 365)
 WEEKLY_BACKFILL = {"retail": timedelta(days=5 * 365), "storage": timedelta(days=6 * 365 + 30)}
 WEEKLY_SERIES = {"retail": ids_where(category="retail"), "storage": ids_where(category="storage")}
@@ -62,12 +72,12 @@ def _advanced(before, after) -> bool:
     return after is not None and (before is None or after.ts_utc > before.ts_utc)
 
 
-def prune_partial_coverage(session: Session, series_id: str, since: datetime) -> int:
+def prune_partial_coverage(session: Session, series_id: str, since: datetime, fraction: float = 0.6) -> int:
     """Delete values from `since` on that are too low to be a full US48 total. Returns rows removed."""
     reference = [v for _, v in history(session, series_id, since - timedelta(days=7))]
     if len(reference) < 24:
         return 0
-    floor = PARTIAL_COVERAGE_FRACTION * statistics.median(reference)
+    floor = fraction * statistics.median(reference)
     result = session.exec(
         delete(Observation).where(
             col(Observation.series_id) == series_id,
@@ -111,8 +121,8 @@ def refresh_eia_hourly(session: Session, client: httpx.Client) -> set[str]:
                 total += upsert_observations(session, sid, rows)
                 session.commit()  # resumable: a crash keeps finished chunks
 
-            if sid in PARTIAL_COVERAGE_SERIES and touched:
-                prune_partial_coverage(session, sid, min(touched))
+            if sid in PARTIAL_COVERAGE_FLOOR and touched:
+                prune_partial_coverage(session, sid, min(touched), PARTIAL_COVERAGE_FLOOR[sid])
             rebuild_rollups(session, sid, touched)
             session.commit()
             if _advanced(before, latest_observation(session, sid)):

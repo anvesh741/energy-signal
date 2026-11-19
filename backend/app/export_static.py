@@ -33,7 +33,8 @@ def request_paths(client: TestClient) -> list[str]:
         "/api/forecasts/options",
         "/api/sources",
     ]
-    paths += [f"/api/electricity/us48?days={d}" for d in US48_DAYS]
+    grid = client.get("/api/electricity/grid").json()
+    paths += [f"/api/electricity/grid?region={r['code']}&days={d}" for r in grid["regions"] for d in US48_DAYS]
     storage = client.get("/api/fuels/storage").json()
     paths += [f"/api/fuels/storage?region={r['id']}" for r in storage["regions"]]
     for opt in client.get("/api/forecasts/options").json():
